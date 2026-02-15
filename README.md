@@ -128,6 +128,34 @@ Script behavior:
 - restarts `librarybot.service`,
 - prints `systemctl status` and recent journal logs.
 
+## Enable Mini App in bot service
+
+After deploying the Django Mini App backend and HTTPS endpoint, update bot env:
+
+```env
+MINI_APP_URL=https://cheggo.uz/library/mini/
+# optional:
+# ADMIN_TELEGRAM_IDS=123456789,987654321
+```
+
+Then restart:
+
+```bash
+cd ~/library_manage_bot
+sudo systemctl restart librarybot.service
+sudo systemctl status librarybot.service --no-pager
+sudo journalctl -u librarybot.service -n 120 --no-pager
+```
+
+Note: `scripts/ec2_update_librarybot.sh` is for bot-only rollout and will stop if `MINI_APP_URL` is set.
+
+For Mini App-enabled rollout, use:
+
+```bash
+cd ~/library_manage_bot
+bash scripts/ec2_update_with_miniapp.sh
+```
+
 ## Reminder algorithm
 - `daily_pages = start_pages + weekly_increment * week_index`
 - `week_index = (date - start_date).days // increment_every_days`
