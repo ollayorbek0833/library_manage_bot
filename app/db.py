@@ -27,6 +27,7 @@ class Database:
         self._conn = await aiosqlite.connect(self.db_path.as_posix())
         self._conn.row_factory = aiosqlite.Row
         await self._conn.execute("PRAGMA foreign_keys = ON;")
+        await self._conn.execute("PRAGMA busy_timeout = 5000;")
 
         schema_path = Path(__file__).with_name("models.sql")
         schema_sql = schema_path.read_text(encoding="utf-8")
@@ -340,4 +341,3 @@ class Database:
                 (done_at, from_page, to_page, reminder_id),
             )
         await self.conn.commit()
-

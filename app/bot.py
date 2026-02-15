@@ -123,6 +123,7 @@ class ReadingTrackerBot:
         application.add_handler(CommandHandler("pause", self.command_pause))
         application.add_handler(CommandHandler("resume", self.command_resume))
         application.add_handler(CommandHandler("settings", self.command_settings))
+        application.add_handler(CommandHandler("reloadsettings", self.command_reloadsettings))
         application.add_handler(CommandHandler("cancel", self.command_cancel_pending))
 
         application.add_handler(
@@ -194,6 +195,7 @@ class ReadingTrackerBot:
             "/pause <book_id> - Pause reminders for a book\n"
             "/resume <book_id> - Resume reminders for a book\n"
             "/settings - Show/edit reminder settings\n"
+            "/reloadsettings - Reload scheduler from DB settings\n"
             "/cancel - Cancel pending input"
         )
 
@@ -335,6 +337,35 @@ class ReadingTrackerBot:
 
         text = await self._build_settings_text()
         await update.message.reply_text(text, reply_markup=self._settings_keyboard())
+
+    async def command_reloadsettings(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+    ) -> None:
+        del context
+        if not await self._ensure_owner_private(update):
+            return
+        assert update.message is not None
+
+        try:
+            await self.reminder_scheduler.refresh_schedule()
+            reminder_time = await self.db.get_setting("reminder_time") or "08:00"
+            try:
+                parse_time_hh_mm(reminder_time)
+                effective_time = reminder_time
+                note = ""
+            except ValueError:
+                effective_time = "08:00"
+                note = " (invalid DB value, fallback applied)"
+        except Exception:
+            LOGGER.exception("Failed to reload scheduler settings")
+            await update.message.reply_text("Failed to reload scheduler settings. Check bot logs.")
+            return
+
+        await update.message.reply_text(
+            f"Scheduler reloaded. reminder_time={effective_time}{note}",
+        )
 
     async def callback_settings_edit(
         self,

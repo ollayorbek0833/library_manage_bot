@@ -102,7 +102,10 @@ Then use it with:
 - `/pause <book_id>`
 - `/resume <book_id>`
 - `/settings`
+- `/reloadsettings` (reloads scheduler from DB settings without bot restart)
 - `/cancel`
+
+If you edit `settings.reminder_time` directly in the database/admin panel, run `/reloadsettings` in private chat to apply the new schedule immediately.
 
 ## Reminder algorithm
 - `daily_pages = start_pages + weekly_increment * week_index`
