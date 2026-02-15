@@ -5,7 +5,7 @@ import re
 from datetime import date, datetime
 from typing import Any
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.constants import ChatType
 from telegram.error import BadRequest, TelegramError
 from telegram.ext import (
@@ -117,6 +117,7 @@ class ReadingTrackerBot:
         )
         application.add_handler(newbook_conv)
         application.add_handler(CommandHandler("start", self.command_start))
+        application.add_handler(CommandHandler("panel", self.command_panel))
         application.add_handler(CommandHandler("setchannel", self.command_setchannel))
         application.add_handler(CommandHandler("list", self.command_list))
         application.add_handler(CommandHandler("progress", self.command_progress))
@@ -166,6 +167,19 @@ class ReadingTrackerBot:
             return False
         return True
 
+    async def _ensure_admin_private(self, update: Update) -> bool:
+        user = update.effective_user
+        chat = update.effective_chat
+        if user is None or user.id not in self.config.admin_user_ids:
+            if update.message:
+                await update.message.reply_text("Access denied.")
+            return False
+        if chat is None or chat.type != ChatType.PRIVATE:
+            if update.message:
+                await update.message.reply_text("Use this command in private chat.")
+            return False
+        return True
+
     async def _ensure_owner_callback(self, update: Update) -> bool:
         query = update.callback_query
         if query is None:
@@ -196,6 +210,7 @@ class ReadingTrackerBot:
             "/resume <book_id> - Resume reminders for a book\n"
             "/settings - Show/edit reminder settings\n"
             "/reloadsettings - Reload scheduler from DB settings\n"
+            "/panel - Open admin mini app\n"
             "/cancel - Cancel pending input"
         )
 
@@ -204,6 +219,33 @@ class ReadingTrackerBot:
             return
         assert update.message is not None
         await update.message.reply_text(self._help_text())
+
+    async def command_panel(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        del context
+        if not await self._ensure_admin_private(update):
+            return
+        assert update.message is not None
+
+        mini_app_url = (self.config.mini_app_url or "").strip()
+        if not mini_app_url:
+            await update.message.reply_text(
+                "Mini app is not configured. Set MINI_APP_URL in bot environment.",
+            )
+            return
+
+        await update.message.reply_text(
+            "Open the admin panel mini app:",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [
+                        InlineKeyboardButton(
+                            text="Open Admin Panel",
+                            web_app=WebAppInfo(url=mini_app_url),
+                        ),
+                    ],
+                ],
+            ),
+        )
 
     async def command_setchannel(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if not await self._ensure_owner_private(update):

@@ -54,6 +54,9 @@ app/
    TELEGRAM_BOT_TOKEN=your_bot_token_here
    OWNER_USER_ID=950697133
    CHANNEL_link=https://t.me/masharipovs_notes
+   # Optional Mini App integration:
+   # MINI_APP_URL=https://your-domain.com/mini/
+   # ADMIN_TELEGRAM_IDS=950697133,123456789
    # Optional:
    # DB_PATH=data/bot.sqlite3
    # TZ=Asia/Tashkent
@@ -103,9 +106,27 @@ Then use it with:
 - `/resume <book_id>`
 - `/settings`
 - `/reloadsettings` (reloads scheduler from DB settings without bot restart)
+- `/panel` (open Telegram Mini App admin panel for allowlisted admins)
 - `/cancel`
 
 If you edit `settings.reminder_time` directly in the database/admin panel, run `/reloadsettings` in private chat to apply the new schedule immediately.
+
+## EC2 bot-only update helper
+
+For a bot-only rollout (without enabling Mini App yet), run on your EC2 host:
+
+```bash
+cd ~/library_manage_bot
+bash scripts/ec2_update_librarybot.sh
+```
+
+Script behavior:
+- backups `.env` and `data/bot.sqlite3`,
+- `git fetch` + `git pull --ff-only`,
+- installs dependencies in `~/library_manage_bot/venv`,
+- checks that `MINI_APP_URL` is not enabled for deferred Mini App rollout,
+- restarts `librarybot.service`,
+- prints `systemctl status` and recent journal logs.
 
 ## Reminder algorithm
 - `daily_pages = start_pages + weekly_increment * week_index`
